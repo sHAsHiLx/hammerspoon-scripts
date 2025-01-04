@@ -1,5 +1,6 @@
 local trayMenu
 local defaultLayout
+local configFile = hs.configdir .. "/defaultLayout.conf"
 
 local layoutMappings = {
   { systemName = "U.S.", abbreviation = "US" },
@@ -37,7 +38,7 @@ local function getDialogTexts()
   end
 end
 
-function getLayoutAbbreviation(layout)
+local function getLayoutAbbreviation(layout)
   for _, mapping in ipairs(layoutMappings) do
     if mapping.systemName == layout then
       return mapping.abbreviation
@@ -46,7 +47,13 @@ function getLayoutAbbreviation(layout)
   return layout:match("^(%S+) (%S+)") or layout:match("^(%S+)"):sub(1, 2):upper()
 end
 
-function determineDefaultLayout()
+local function determineDefaultLayout()
+  if hs.fs.attributes(configFile) then
+    for line in io.lines(configFile) do
+      return line
+    end
+  end
+
   local layouts = hs.keycodes.layouts()
   for _, mapping in ipairs(layoutMappings) do
     for _, systemLayout in ipairs(layouts) do
@@ -58,14 +65,22 @@ function determineDefaultLayout()
   return layouts[1] or "U.S."
 end
 
-function switchLayoutForApp(appName)
+local function saveDefaultLayout(layout)
+  local file = io.open(configFile, "w")
+  if file then
+    file:write(layout)
+    file:close()
+  end
+end
+
+local function switchLayoutForApp(appName)
   local currentLayout = hs.keycodes.currentLayout()
   if currentLayout ~= defaultLayout then
     hs.keycodes.setLayout(defaultLayout)
   end
 end
 
-function showLayoutSelector()
+local function showLayoutSelector()
   local layouts = hs.keycodes.layouts()
   local escapedLayouts = {}
   for _, layout in ipairs(layouts) do
@@ -89,10 +104,11 @@ function showLayoutSelector()
   if success and result ~= texts.cancel then
     defaultLayout = result
     trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
+    saveDefaultLayout(defaultLayout)
   end
 end
 
-function createTrayMenu()
+local function createTrayMenu()
   trayMenu = hs.menubar.new()
   trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
   trayMenu:setClickCallback(function()
