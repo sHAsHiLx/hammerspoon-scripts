@@ -11,7 +11,6 @@ local defaultLayout
 local configFile = hs.configdir .. "/defaultLayout.conf"
 local watcher
 local monitorTimer
-local heartbeatTimer
 
 -- Маппинг раскладок
 local layoutMappings = {
@@ -159,27 +158,19 @@ local function restartWatcher()
 end
 
 local function monitorHealth()
-  if not watcher or not watcher:isRunning() then
+  if not watcher or type(watcher.isRunning) ~= "function" or not watcher:isRunning() then
     print(getSystemLanguage() == "ru" and "Перезапуск наблюдателя приложений." or "Restarting application watcher.")
     restartWatcher()
   end
-  if not monitorTimer or not monitorTimer:running() then
+  if not monitorTimer or type(monitorTimer.running) ~= "function" or not monitorTimer:running() then
     print(getSystemLanguage() == "ru" and "Таймер мониторинга мёртв. Перезапуск." or "Monitor timer is dead. Restarting.")
     monitorTimer = hs.timer.doEvery(60, monitorHealth)
   end
-  if not heartbeatTimer or not heartbeatTimer:running() then
-    print(getSystemLanguage() == "ru" and "Таймер сердцебиения мёртв. Перезапуск." or "Heartbeat timer is dead. Restarting.")
-    heartbeatTimer = hs.timer.doEvery(10, heartbeat)
-  end
 end
 
-local function heartbeat()
-  print(getSystemLanguage() == "ru" and "Скрипт работает." or "Script is alive.")
-end
-
+-- Инициализация
 defaultLayout = determineDefaultLayout()
 createTrayMenu()
 restartWatcher()
 
 monitorTimer = hs.timer.doEvery(60, monitorHealth)
-heartbeatTimer = hs.timer.doEvery(10, heartbeat)
