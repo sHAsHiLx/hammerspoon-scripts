@@ -1,9 +1,11 @@
 local trayMenu
 local defaultLayout
+local configFile = hs.configdir .. "/defaultLayout.conf"
 
 local layoutMappings = {
   { systemName = "U.S.", abbreviation = "US" },
   { systemName = "U.S. International – PC", abbreviation = "US-PC" },
+  { systemName = "British", abbreviation = "GB" },
   { systemName = "British – PC", abbreviation = "GB-PC" },
   { systemName = "Russian – PC", abbreviation = "RU-PC" },
   { systemName = "Ukrainian", abbreviation = "UA" },
@@ -12,6 +14,15 @@ local layoutMappings = {
   { systemName = "Spanish", abbreviation = "ES" },
   { systemName = "Italian", abbreviation = "IT" },
   { systemName = "Portuguese", abbreviation = "PT" },
+  { systemName = "Dutch", abbreviation = "NL" },
+  { systemName = "Swedish", abbreviation = "SV" },
+  { systemName = "Norwegian", abbreviation = "NO" },
+  { systemName = "Danish", abbreviation = "DA" },
+  { systemName = "Finnish", abbreviation = "FI" },
+  { systemName = "Polish", abbreviation = "PL" },
+  { systemName = "Czech", abbreviation = "CS" },
+  { systemName = "Turkish", abbreviation = "TR" },
+  { systemName = "Greek", abbreviation = "EL" },
 }
 
 local function getSystemLanguage()
@@ -37,7 +48,7 @@ local function getDialogTexts()
   end
 end
 
-function getLayoutAbbreviation(layout)
+local function getLayoutAbbreviation(layout)
   for _, mapping in ipairs(layoutMappings) do
     if mapping.systemName == layout then
       return mapping.abbreviation
@@ -46,7 +57,13 @@ function getLayoutAbbreviation(layout)
   return layout:match("^(%S+) (%S+)") or layout:match("^(%S+)"):sub(1, 2):upper()
 end
 
-function determineDefaultLayout()
+local function determineDefaultLayout()
+  if hs.fs.attributes(configFile) then
+    for line in io.lines(configFile) do
+      return line
+    end
+  end
+
   local layouts = hs.keycodes.layouts()
   for _, mapping in ipairs(layoutMappings) do
     for _, systemLayout in ipairs(layouts) do
@@ -58,15 +75,23 @@ function determineDefaultLayout()
   return layouts[1] or "U.S."
 end
 
-function switchLayoutForApp(appName)
-  local currentLayout = hs.keycodes.currentLayout()
-  if currentLayout ~= defaultLayout then
-    hs.keycodes.setLayout(defaultLayout)
-    print("Application launched: " .. appName .. ", default layout applied: " .. defaultLayout)
+local function saveDefaultLayout(layout)
+  local file = io.open(configFile, "w")
+  if file then
+    file:write(layout)
+    file:close()
   end
 end
 
-function showLayoutSelector()
+local function switchLayoutForApp(appName)
+  local currentLayout = hs.keycodes.currentLayout()
+  if currentLayout ~= defaultLayout then
+    hs.keycodes.setLayout(defaultLayout)
+    print("Application launched: " .. appName .. ", layout set to: " .. defaultLayout)
+  end
+end
+
+local function showLayoutSelector()
   local layouts = hs.keycodes.layouts()
   local escapedLayouts = {}
   for _, layout in ipairs(layouts) do
@@ -77,6 +102,7 @@ function showLayoutSelector()
   local texts = getDialogTexts()
 
   local appleScript = [[
+    activate
     set layouts to {]] .. layoutsString .. [[}
     set chosenLayout to (choose from list layouts with prompt "]] .. texts.prompt .. [[" default items {"]] .. defaultLayout:gsub("\"", "\\\"") .. [["} without multiple selections allowed)
     if chosenLayout is false then
@@ -90,10 +116,14 @@ function showLayoutSelector()
   if success and result ~= texts.cancel then
     defaultLayout = result
     trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
+    saveDefaultLayout(defaultLayout)
+    print("Default layout updated to: " .. defaultLayout)
+  else
+    print("Selection cancelled or an error occurred.")
   end
 end
 
-function createTrayMenu()
+local function createTrayMenu()
   trayMenu = hs.menubar.new()
   trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
   trayMenu:setClickCallback(function()
