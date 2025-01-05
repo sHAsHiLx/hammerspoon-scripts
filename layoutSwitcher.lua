@@ -1,45 +1,49 @@
+-- Принудительная загрузка модулей
+hs.keycodes.currentLayout()
+hs.application.watcher.new(function() end):stop()
+hs.osascript.applescript("return \"test\"")
+hs.timer.doAfter(1, function() end)
+hs.menubar.new():delete()
+
+-- Переменные
 local trayMenu
 local defaultLayout
 local configFile = hs.configdir .. "/defaultLayout.conf"
+local watcher
+local monitorTimer
+local heartbeatTimer
 
+-- Маппинг раскладок
 local layoutMappings = {
   { systemName = "U.S.", abbreviation = "US" },
   { systemName = "U.S. International – PC", abbreviation = "US-PC" },
   { systemName = "British", abbreviation = "GB" },
   { systemName = "British – PC", abbreviation = "GB-PC" },
-  { systemName = "Spanish", abbreviation = "ES" },
+  { systemName = "Russian – PC", abbreviation = "RU-PC" },
+  { systemName = "Ukrainian", abbreviation = "UA" },
   { systemName = "French", abbreviation = "FR" },
   { systemName = "German", abbreviation = "DE" },
-  { systemName = "Russian – PC", abbreviation = "RU-PC" },
+  { systemName = "Spanish", abbreviation = "ES" },
+  { systemName = "Italian", abbreviation = "IT" },
   { systemName = "Portuguese", abbreviation = "PT" },
+  { systemName = "Dutch", abbreviation = "NL" },
+  { systemName = "Polish", abbreviation = "PL" },
+  { systemName = "Turkish", abbreviation = "TR" },
   { systemName = "Chinese – Simplified", abbreviation = "CN-ZH" },
   { systemName = "Chinese – Traditional", abbreviation = "CN-TR" },
   { systemName = "Japanese", abbreviation = "JA" },
   { systemName = "Korean", abbreviation = "KO" },
-  { systemName = "Italian", abbreviation = "IT" },
-  { systemName = "Dutch", abbreviation = "NL" },
-  { systemName = "Polish", abbreviation = "PL" },
-  { systemName = "Ukrainian", abbreviation = "UA" },
-  { systemName = "Turkish", abbreviation = "TR" },
   { systemName = "Arabic", abbreviation = "AR" },
   { systemName = "Hebrew", abbreviation = "HE" },
 }
 
+-- Вспомогательные функции
 local function getSystemLanguage()
   local handle = io.popen("defaults read -g AppleLanguages")
   local result = handle:read("*a")
   handle:close()
   local language = result:match('"(.-)"')
   return language:sub(1, 2) or "en"
-end
-
-local function logMessage(messageRU, messageEN)
-  local lang = getSystemLanguage()
-  if lang == "ru" then
-    print(messageRU)
-  else
-    print(messageEN)
-  end
 end
 
 local function getDialogTexts()
@@ -96,10 +100,10 @@ local function switchLayoutForApp(appName)
   local currentLayout = hs.keycodes.currentLayout()
   if currentLayout ~= defaultLayout then
     hs.keycodes.setLayout(defaultLayout)
-    logMessage(
-      "Приложение запущено: " .. appName .. ", установлена раскладка: " .. defaultLayout,
-      "Application launched: " .. appName .. ", layout set to: " .. defaultLayout
-    )
+    local message = getSystemLanguage() == "ru"
+        and ("Приложение запущено: " .. appName .. ", установлена раскладка: " .. defaultLayout)
+        or ("Application launched: " .. appName .. ", layout set to: " .. defaultLayout)
+    print(message)
   end
 end
 
@@ -129,15 +133,9 @@ local function showLayoutSelector()
     defaultLayout = result
     trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
     saveDefaultLayout(defaultLayout)
-    logMessage(
-      "Раскладка по умолчанию обновлена на: " .. defaultLayout,
-      "Default layout updated to: " .. defaultLayout
-    )
+    print(getSystemLanguage() == "ru" and ("Раскладка по умолчанию обновлена: " .. defaultLayout) or ("Default layout updated to: " .. defaultLayout))
   else
-    logMessage(
-      "Выбор отменён или произошла ошибка.",
-      "Selection cancelled or an error occurred."
-    )
+    print(getSystemLanguage() == "ru" and "Выбор отменён или произошла ошибка." or "Selection cancelled or an error occurred.")
   end
 end
 
@@ -149,12 +147,39 @@ local function createTrayMenu()
   end)
 end
 
-defaultLayout = determineDefaultLayout()
+local function restartWatcher()
+  if watcher then watcher:stop() end
+  watcher = hs.application.watcher.new(function(appName, eventType)
+    if eventType == hs.application.watcher.launched then
+      switchLayoutForApp(appName)
+    end
+  end)
+  watcher:start()
+  print(getSystemLanguage() == "ru" and "Наблюдатель приложений перезапущен." or "Application watcher restarted.")
+end
 
-hs.application.watcher.new(function(appName, eventType)
-  if eventType == hs.application.watcher.launched then
-    switchLayoutForApp(appName)
+local function monitorHealth()
+  if not watcher or not watcher:isRunning() then
+    print(getSystemLanguage() == "ru" and "Перезапуск наблюдателя приложений." or "Restarting application watcher.")
+    restartWatcher()
   end
-end):start()
+  if not monitorTimer or not monitorTimer:running() then
+    print(getSystemLanguage() == "ru" and "Таймер мониторинга мёртв. Перезапуск." or "Monitor timer is dead. Restarting.")
+    monitorTimer = hs.timer.doEvery(60, monitorHealth)
+  end
+  if not heartbeatTimer or not heartbeatTimer:running() then
+    print(getSystemLanguage() == "ru" and "Таймер сердцебиения мёртв. Перезапуск." or "Heartbeat timer is dead. Restarting.")
+    heartbeatTimer = hs.timer.doEvery(10, heartbeat)
+  end
+end
 
+local function heartbeat()
+  print(getSystemLanguage() == "ru" and "Скрипт работает." or "Script is alive.")
+end
+
+defaultLayout = determineDefaultLayout()
 createTrayMenu()
+restartWatcher()
+
+monitorTimer = hs.timer.doEvery(60, monitorHealth)
+heartbeatTimer = hs.timer.doEvery(10, heartbeat)
