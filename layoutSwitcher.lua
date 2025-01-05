@@ -5,6 +5,9 @@ hs.osascript.applescript("return \"test\"")
 hs.timer.doAfter(1, function() end)
 hs.menubar.new():delete()
 
+-- Настройки
+local debugMode = false  -- Установите true, чтобы включить отладочные сообщения
+
 -- Переменные
 local trayMenu
 local defaultLayout
@@ -37,6 +40,12 @@ local layoutMappings = {
 }
 
 -- Вспомогательные функции
+local function debugPrint(message)
+  if debugMode then
+    print(message)
+  end
+end
+
 local function getSystemLanguage()
   local handle = io.popen("defaults read -g AppleLanguages")
   local result = handle:read("*a")
@@ -102,7 +111,7 @@ local function switchLayoutForApp(appName)
     local message = getSystemLanguage() == "ru"
         and ("Приложение запущено: " .. appName .. ", установлена раскладка: " .. defaultLayout)
         or ("Application launched: " .. appName .. ", layout set to: " .. defaultLayout)
-    print(message)
+    print(message)  -- Гарантированный вывод сообщения в консоль
   end
 end
 
@@ -132,9 +141,9 @@ local function showLayoutSelector()
     defaultLayout = result
     trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
     saveDefaultLayout(defaultLayout)
-    print(getSystemLanguage() == "ru" and ("Раскладка по умолчанию обновлена: " .. defaultLayout) or ("Default layout updated to: " .. defaultLayout))
+    debugPrint(getSystemLanguage() == "ru" and ("Раскладка по умолчанию обновлена: " .. defaultLayout) or ("Default layout updated to: " .. defaultLayout))
   else
-    print(getSystemLanguage() == "ru" and "Выбор отменён или произошла ошибка." or "Selection cancelled or an error occurred.")
+    debugPrint(getSystemLanguage() == "ru" and "Выбор отменён или произошла ошибка." or "Selection cancelled or an error occurred.")
   end
 end
 
@@ -154,16 +163,16 @@ local function restartWatcher()
     end
   end)
   watcher:start()
-  print(getSystemLanguage() == "ru" and "Наблюдатель приложений перезапущен." or "Application watcher restarted.")
+  debugPrint(getSystemLanguage() == "ru" and "Наблюдатель приложений перезапущен." or "Application watcher restarted.")
 end
 
 local function monitorHealth()
   if not watcher or type(watcher.isRunning) ~= "function" or not watcher:isRunning() then
-    print(getSystemLanguage() == "ru" and "Перезапуск наблюдателя приложений." or "Restarting application watcher.")
+    debugPrint(getSystemLanguage() == "ru" and "Перезапуск наблюдателя приложений." or "Restarting application watcher.")
     restartWatcher()
   end
   if not monitorTimer or type(monitorTimer.running) ~= "function" or not monitorTimer:running() then
-    print(getSystemLanguage() == "ru" and "Таймер мониторинга мёртв. Перезапуск." or "Monitor timer is dead. Restarting.")
+    debugPrint(getSystemLanguage() == "ru" and "Таймер мониторинга мёртв. Перезапуск." or "Monitor timer is dead. Restarting.")
     monitorTimer = hs.timer.doEvery(60, monitorHealth)
   end
 end
