@@ -15,14 +15,14 @@ local layoutMappings = {
   { systemName = "Italian", abbreviation = "IT" },
   { systemName = "Portuguese", abbreviation = "PT" },
   { systemName = "Dutch", abbreviation = "NL" },
-  { systemName = "Swedish", abbreviation = "SV" },
-  { systemName = "Norwegian", abbreviation = "NO" },
-  { systemName = "Danish", abbreviation = "DA" },
-  { systemName = "Finnish", abbreviation = "FI" },
   { systemName = "Polish", abbreviation = "PL" },
-  { systemName = "Czech", abbreviation = "CS" },
   { systemName = "Turkish", abbreviation = "TR" },
-  { systemName = "Greek", abbreviation = "EL" },
+  { systemName = "Chinese – Simplified", abbreviation = "ZH" },
+  { systemName = "Chinese – Traditional", abbreviation = "ZH-T" },
+  { systemName = "Japanese", abbreviation = "JA" },
+  { systemName = "Korean", abbreviation = "KO" },
+  { systemName = "Arabic", abbreviation = "AR" },
+  { systemName = "Hebrew", abbreviation = "HE" },
 }
 
 local function getSystemLanguage()
