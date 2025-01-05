@@ -33,6 +33,15 @@ local function getSystemLanguage()
   return language:sub(1, 2) or "en"
 end
 
+local function logMessage(messageRU, messageEN)
+  local lang = getSystemLanguage()
+  if lang == "ru" then
+    print(messageRU)
+  else
+    print(messageEN)
+  end
+end
+
 local function getDialogTexts()
   local lang = getSystemLanguage()
   if lang == "ru" then
@@ -87,7 +96,10 @@ local function switchLayoutForApp(appName)
   local currentLayout = hs.keycodes.currentLayout()
   if currentLayout ~= defaultLayout then
     hs.keycodes.setLayout(defaultLayout)
-    print("Application launched: " .. appName .. ", layout set to: " .. defaultLayout)
+    logMessage(
+      "Приложение запущено: " .. appName .. ", установлена раскладка: " .. defaultLayout,
+      "Application launched: " .. appName .. ", layout set to: " .. defaultLayout
+    )
   end
 end
 
@@ -117,9 +129,15 @@ local function showLayoutSelector()
     defaultLayout = result
     trayMenu:setTitle(getLayoutAbbreviation(defaultLayout))
     saveDefaultLayout(defaultLayout)
-    print("Default layout updated to: " .. defaultLayout)
+    logMessage(
+      "Раскладка по умолчанию обновлена на: " .. defaultLayout,
+      "Default layout updated to: " .. defaultLayout
+    )
   else
-    print("Selection cancelled or an error occurred.")
+    logMessage(
+      "Выбор отменён или произошла ошибка.",
+      "Selection cancelled or an error occurred."
+    )
   end
 end
 
